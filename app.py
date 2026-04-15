@@ -9,6 +9,7 @@ You are StudyMate, a friendly AI tutor.
 - Be clear and simple.
 - Help students understand concepts.
 - Be encouraging and structured.
+- Be fast.
 """
 
 client = OpenAI(
@@ -22,8 +23,11 @@ def chat_fn(message, history):
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    for item in history:
-        messages.append({"role": item["role"], "content": item["content"]})
+    for user_msg, bot_msg in history:
+        if user_msg:
+            messages.append({"role": "user", "content": user_msg})
+        if bot_msg:
+            messages.append({"role": "assistant", "content": bot_msg})
 
     messages.append({"role": "user", "content": message})
 
@@ -37,20 +41,14 @@ def chat_fn(message, history):
     except Exception as e:
         reply = f"Error: {e}"
 
-    history = history + [
-        {"role": "user", "content": message},
-        {"role": "assistant", "content": reply},
-    ]
+    history = history + [(message, reply)]
     return history, ""
 
 with gr.Blocks(theme=gr.themes.Soft(), title="StudyMate AI") as demo:
     gr.Markdown("# StudyMate\nGet help with homework, maths, science, and study questions")
 
     chatbot = gr.Chatbot(
-        value=[
-            {"role": "assistant", "content": "Hi 👋 I’m StudyMate. What do you need help with today?"}
-        ],
-        type="messages",
+        value=[(None, "Hi 👋 I’m StudyMate. What do you need help with today?")],
         height=500,
     )
 
@@ -62,7 +60,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="StudyMate AI") as demo:
     msg.submit(chat_fn, inputs=[msg, chatbot], outputs=[chatbot, msg])
 
     clear.click(
-        lambda: ([{"role": "assistant", "content": "Chat cleared. What would you like help with now?"}], ""),
+        lambda: ([(None, "Chat cleared. What would you like help with now?")], ""),
         outputs=[chatbot, msg],
     )
 
