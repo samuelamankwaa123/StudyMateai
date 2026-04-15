@@ -2,16 +2,13 @@ import os
 import gradio as gr
 from openai import OpenAI
 
-# System prompt (makes it a tutor)
 SYSTEM_PROMPT = """
-You are StudyMate, a friendly AI tutor for students.
+You are StudyMate, a friendly AI tutor.
 
-- For maths, show step-by-step working.
-- For science calculations, show every step clearly.
-- Explain concepts in simple language.
-- Be encouraging and clear.
-- Help students understand, not just get the answer.
-- Keep answers structured and easy to follow.
+- Explain step-by-step.
+- Be clear and simple.
+- Help students understand concepts.
+- Be encouraging and structured.
 """
 
 client = OpenAI(
@@ -20,13 +17,13 @@ client = OpenAI(
 )
 
 def chat_fn(message, history):
+    if history is None:
+        history = []
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    for user_msg, bot_msg in history:
-        if user_msg:
-            messages.append({"role": "user", "content": user_msg})
-        if bot_msg:
-            messages.append({"role": "assistant", "content": bot_msg})
+    for item in history:
+        messages.append({"role": item["role"], "content": item["content"]})
 
     messages.append({"role": "user", "content": message})
 
@@ -40,27 +37,33 @@ def chat_fn(message, history):
     except Exception as e:
         reply = f"Error: {e}"
 
-    history.append((message, reply))
-    return history
-
+    history = history + [
+        {"role": "user", "content": message},
+        {"role": "assistant", "content": reply},
+    ]
+    return history, ""
 
 with gr.Blocks(theme=gr.themes.Soft(), title="StudyMate AI") as demo:
-    gr.Markdown("# 📚 StudyMate AI\nYour personal AI tutor")
-
-    with gr.Row():
-        gr.Button("Math").click(lambda: "Help me solve this math problem step-by-step:", None, None)
-        gr.Button("Science").click(lambda: "Explain this science question step-by-step:", None, None)
-        gr.Button("Homework").click(lambda: "Help me understand this homework:", None, None)
+    gr.Markdown("# StudyMate\nGet help with homework, maths, science, and study questions")
 
     chatbot = gr.Chatbot(
-        value=[(None, "Hi 👋 I'm StudyMate. What do you need help with?")],
+        value=[
+            {"role": "assistant", "content": "Hi 👋 I’m StudyMate. What do you need help with today?"}
+        ],
+        type="messages",
         height=500,
     )
 
-    msg = gr.Textbox(placeholder="Ask a question...")
+    msg = gr.Textbox(placeholder="Type a message...", label="")
     send = gr.Button("Send")
+    clear = gr.Button("Clear")
 
-    send.click(chat_fn, [msg, chatbot], chatbot)
-    msg.submit(chat_fn, [msg, chatbot], chatbot)
+    send.click(chat_fn, inputs=[msg, chatbot], outputs=[chatbot, msg])
+    msg.submit(chat_fn, inputs=[msg, chatbot], outputs=[chatbot, msg])
+
+    clear.click(
+        lambda: ([{"role": "assistant", "content": "Chat cleared. What would you like help with now?"}], ""),
+        outputs=[chatbot, msg],
+    )
 
 demo.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))
