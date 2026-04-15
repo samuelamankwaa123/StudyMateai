@@ -9,7 +9,6 @@ You are StudyMate, a friendly AI tutor.
 - Be clear and simple.
 - Help students understand concepts.
 - Be encouraging and structured.
-- Be fast.
 """
 
 client = OpenAI(
@@ -23,11 +22,11 @@ def chat_fn(message, history):
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    for user_msg, bot_msg in history:
-        if user_msg:
-            messages.append({"role": "user", "content": user_msg})
-        if bot_msg:
-            messages.append({"role": "assistant", "content": bot_msg})
+    for item in history:
+        messages.append({
+            "role": item["role"],
+            "content": item["content"]
+        })
 
     messages.append({"role": "user", "content": message})
 
@@ -41,14 +40,24 @@ def chat_fn(message, history):
     except Exception as e:
         reply = f"Error: {e}"
 
-    history = history + [(message, reply)]
+    history = history + [
+        {"role": "user", "content": message},
+        {"role": "assistant", "content": reply},
+    ]
     return history, ""
+
+def clear_chat():
+    return [
+        {"role": "assistant", "content": "Chat cleared. What would you like help with now?"}
+    ], ""
 
 with gr.Blocks(theme=gr.themes.Soft(), title="StudyMate AI") as demo:
     gr.Markdown("# StudyMate\nGet help with homework, maths, science, and study questions")
 
     chatbot = gr.Chatbot(
-        value=[(None, "Hi 👋 I’m StudyMate. What do you need help with today?")],
+        value=[
+            {"role": "assistant", "content": "Hi 👋 I’m StudyMate. What do you need help with today?"}
+        ],
         height=500,
     )
 
@@ -58,10 +67,6 @@ with gr.Blocks(theme=gr.themes.Soft(), title="StudyMate AI") as demo:
 
     send.click(chat_fn, inputs=[msg, chatbot], outputs=[chatbot, msg])
     msg.submit(chat_fn, inputs=[msg, chatbot], outputs=[chatbot, msg])
-
-    clear.click(
-        lambda: ([(None, "Chat cleared. What would you like help with now?")], ""),
-        outputs=[chatbot, msg],
-    )
+    clear.click(clear_chat, outputs=[chatbot, msg])
 
 demo.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))
