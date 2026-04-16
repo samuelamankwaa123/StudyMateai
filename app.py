@@ -9,6 +9,7 @@ You are StudyMate, a friendly AI tutor.
 - Be clear and simple.
 - Help students understand concepts.
 - Be encouraging and structured.
+- Be concise and efficient, not much lengthy responses.
 """
 
 client = OpenAI(
