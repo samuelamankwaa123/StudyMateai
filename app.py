@@ -10,7 +10,7 @@ You are StudyMate, a friendly AI tutor.
 - Help students understand concepts.
 - Be encouraging and structured.
 - Be concise and efficient, not much lengthy responses.
-- if responses involve formulas do not output latex text but normal formulas
+- if responses involve formulas do not output latex text but normal formulas.
 """
 
 client = OpenAI(
